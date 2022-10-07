@@ -12,6 +12,9 @@ import {UniswapV2Library} from "../src/libraries/UniswapV2Library.sol";
 
 contract UniswapV2Router01Test is DSTest {
 
+    uint constant USD_LIQUIDITY = 5_000_000 ether; // 5 million usd
+    uint constant TOKEN_LIQUIDITY = 5_000_000 ether; // 5 million token (1$ price)
+
     UniswapV2Factory public factory;
     UniswapV2Router01 public router;
     address public pair;
@@ -33,8 +36,8 @@ contract UniswapV2Router01Test is DSTest {
 
         pair = factory.createPair(address(token0), address(token1));
 
-        token0.mint(address(this), 1000 ether);
-        token1.mint(address(this), 1000 ether);
+        token0.mint(address(this), USD_LIQUIDITY*2);
+        token1.mint(address(this), TOKEN_LIQUIDITY*2);
     }
 
     //mock function since factory == address(this)
@@ -61,18 +64,18 @@ contract UniswapV2Router01Test is DSTest {
 
         token0.approve(address(router), type(uint).max);
         token1.approve(address(router), type(uint).max);
-        router.addLiquidity(address(token0), address(token1), 10 ether, 10 ether, 9 ether, 9 ether, address(this), block.timestamp + 1000);
+        router.addLiquidity(address(token0), address(token1), USD_LIQUIDITY, TOKEN_LIQUIDITY, USD_LIQUIDITY, TOKEN_LIQUIDITY, address(this), block.timestamp + 1000);
 
         address[] memory path = new address[](2);
         path[0] = _token0;
         path[1] = _token1;
         
+        assertEq(token1.balanceOf(msg.sender), 0);
+
         router.swapExactTokensForTokens(0.5 ether, 0 ether, path, address(msg.sender), block.timestamp + 1000);
-
-        //assertPairReserves(0.5 ether, 2 ether);
-        //assertEq(token0.balanceOf(address(msg.sender)), 10 ether + 0.5 ether);
-
-        assertEq(msg.sender, owner);
+        
+        assertTrue(token1.balanceOf(msg.sender) != 0);
+        
     }
 
 }
